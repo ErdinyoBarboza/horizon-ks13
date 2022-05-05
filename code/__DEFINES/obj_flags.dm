@@ -40,6 +40,7 @@
 #define XENOMORPH_HOLDABLE (1<<16) // A Xenomorph can hold this item.
 #define NO_PIXEL_RANDOM_DROP (1<<17) //if dropped, it wont have a randomized pixel_x/pixel_y
 #define NO_STRAPS_NEEDED (1<<18) //Item can be equipped to belt slot without the need of a uniform
+// #define IGNORE_DIGITIGRADE (1<<18) //Modsuit Import
 
 // Flags for the clothing_flags var on /obj/item/clothing
 
@@ -52,7 +53,6 @@
 #define THICKMATERIAL (1<<6) //prevents syringes, parapens and hypos if the external suit or helmet (if targeting head) has this flag. Example: space suits, biosuit, bombsuits, thick suits that cover your body.
 #define VOICEBOX_TOGGLABLE (1<<7) // The voicebox in this clothing can be toggled.
 #define VOICEBOX_DISABLED (1<<8) // The voicebox is currently turned off.
-#define SCAN_REAGENTS (1<<9) // Allows helmets, masks and glasses to scan reagents.
 #define BLOCKS_SHOVE_KNOCKDOWN (1<<10) // Prevents shovies against a dense object from knocking the wearer down.
 #define SNUG_FIT               (1<<11) //Prevents knock-off from things like hat-throwing.
 #define ANTI_TINFOIL_MANEUVER   (1<<12) //Hats with negative effects when worn (i.e the tinfoil hat).

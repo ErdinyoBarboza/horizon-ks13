@@ -1335,3 +1335,43 @@
 #define COMSIG_MOB_PLAYS_FOOTSTEP "mob_plays_footstep"
 	/// Will cancel the attempted footstep playing (most likely after overriding and playing another one)
 	#define COMPONENT_CANCEL_PLAY_FOOTSTEP (1<<0)
+
+/// from base of atom/movable/Process_Spacemove(): (movement_dir)
+#define COMSIG_MOVABLE_SPACEMOVE "spacemove"
+	#define COMSIG_MOVABLE_STOP_SPACEMOVE (1<<0)
+
+//from /mob/living/carbon/human/proc/check_shields(): (atom/hit_by, damage, attack_text, attack_type, armour_penetration)
+#define COMSIG_HUMAN_CHECK_SHIELDS "human_check_shields"
+	#define SHIELD_BLOCK (1<<0)
+
+///From base of mob/living/MobBump() (mob/living)
+#define COMSIG_LIVING_MOB_BUMP "living_mob_bump"
+///From base of mob/living/ZImpactDamage() (mob/living, levels, turf/t)
+#define COMSIG_LIVING_Z_IMPACT "living_z_impact"
+	#define NO_Z_IMPACT_DAMAGE (1<<0)
+
+//MODsuit signals
+/// Called when a module is selected to be the active one from on_select(obj/item/mod/module/module)
+#define COMSIG_MOD_MODULE_SELECTED "mod_module_selected"
+/// Called when a MOD activation is called from toggle_activate(mob/user)
+#define COMSIG_MOD_ACTIVATE "mod_activate"
+	/// Cancels the suit's activation
+	#define MOD_CANCEL_ACTIVATE (1 << 0)
+/// Called when a MOD is having modules removed from crowbar_act(mob/user, obj/crowbar)
+#define COMSIG_MOD_MODULE_REMOVAL "mod_module_removal"
+	/// Cancels the removal of modules
+	#define MOD_CANCEL_REMOVAL (1 << 0)
+/// Called when a module attempts to activate, however it does. At the end of checks so you can add some yourself, or work on trigger behavior (mob/user)
+#define COMSIG_MODULE_TRIGGERED "mod_module_triggered"
+	// Cancels activation, with no message. include feedback on your cancel.
+	#define MOD_ABORT_USE (1<<0)
+/// Called when a module activates, after all checks have passed and cooldown started.
+#define COMSIG_MODULE_ACTIVATED "mod_module_activated"
+/// Called when a module deactivates, after all checks have passed.
+#define COMSIG_MODULE_DEACTIVATED "mod_module_deactivated"
+/// Called when a module is used, after all checks have passed and cooldown started.
+#define COMSIG_MODULE_USED "mod_module_used"
+/// Called when the MODsuit wearer is set.
+#define COMSIG_MOD_WEARER_SET "mod_wearer_set"
+/// Called when the MODsuit wearer is unset.
+#define COMSIG_MOD_WEARER_UNSET "mod_wearer_unset"
