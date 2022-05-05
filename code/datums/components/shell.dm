@@ -29,16 +29,18 @@
 		circuit_component.removable = FALSE
 
 /datum/component/shell/RegisterWithParent()
-	RegisterSignal(parent, COMSIG_PARENT_ATTACKBY, .proc/on_attack_by)
 	RegisterSignal(parent, COMSIG_PARENT_EXAMINE, .proc/on_examine)
 	RegisterSignal(parent, COMSIG_ATOM_ATTACK_GHOST, .proc/on_attack_ghost)
-	if(!(shell_flags & SHELL_FLAG_CIRCUIT_FIXED))
-		RegisterSignal(parent, COMSIG_ATOM_TOOL_ACT(TOOL_SCREWDRIVER), .proc/on_screwdriver_act)
+	if(!(shell_flags & SHELL_FLAG_CIRCUIT_UNMODIFIABLE))
 		RegisterSignal(parent, COMSIG_ATOM_TOOL_ACT(TOOL_MULTITOOL), .proc/on_multitool_act)
+		RegisterSignal(parent, COMSIG_PARENT_ATTACKBY, .proc/on_attack_by)
+	if(!(shell_flags & SHELL_FLAG_CIRCUIT_UNREMOVABLE))
+		RegisterSignal(parent, COMSIG_ATOM_TOOL_ACT(TOOL_SCREWDRIVER), .proc/on_screwdriver_act)
 		RegisterSignal(parent, COMSIG_OBJ_DECONSTRUCT, .proc/on_object_deconstruct)
 	if(shell_flags & SHELL_FLAG_REQUIRE_ANCHOR)
-		RegisterSignal(parent, COMSIG_OBJ_DEFAULT_UNFASTEN_WRENCH, .proc/on_unfasten)
+		RegisterSignal(parent, COMSIG_MOVABLE_SET_ANCHORED, .proc/on_set_anchored)
 	RegisterSignal(parent, COMSIG_ATOM_USB_CABLE_TRY_ATTACH, .proc/on_atom_usb_cable_try_attach)
+	RegisterSignal(parent, COMSIG_MOVABLE_CIRCUIT_LOADED, .proc/on_load)
 
 
 /datum/component/shell/UnregisterFromParent()
@@ -61,6 +63,12 @@
 
 /datum/component/shell/proc/on_object_deconstruct()
 	SIGNAL_HANDLER
+	if(!attached_circuit)
+		return
+	if(attached_circuit.admin_only)
+		return
+	if(shell_flags & SHELL_FLAG_CIRCUIT_UNREMOVABLE)
+		return
 	remove_circuit()
 
 /datum/component/shell/proc/on_attack_ghost(datum/source, mob/dead/observer/ghost)
@@ -96,14 +104,32 @@
  */
 /datum/component/shell/proc/on_attack_by(atom/source, obj/item/item, mob/living/attacker)
 	SIGNAL_HANDLER
-	if(istype(item, /obj/item/stock_parts/cell))
-		source.balloon_alert(attacker, "can't pull cell in directly!")
+	if(!is_authorized(attacker))
 		return
 
-	if(attached_circuit?.owner_id && item == attached_circuit.owner_id.resolve())
-		locked = !locked
-		source.balloon_alert(attacker, "[locked? "locked" : "unlocked"] [source]")
+	if(istype(item, /obj/item/stock_parts/cell))
+		source.balloon_alert(attacker, "can't put cell in directly!")
+		return
+
+	if(istype(item, /obj/item/inducer))
+		var/obj/item/inducer/inducer = item
+		INVOKE_ASYNC(inducer, /obj/item.proc/attack_atom, attached_circuit, attacker, list())
 		return COMPONENT_NO_AFTERATTACK
+
+	if(attached_circuit)
+		if(attached_circuit.owner_id && item == attached_circuit.owner_id.resolve())
+			set_locked(!locked)
+			source.balloon_alert(attacker, "[locked ? "locked" : "unlocked"] [source]")
+			return COMPONENT_NO_AFTERATTACK
+
+		if(!attached_circuit.owner_id && istype(item, /obj/item/card/id))
+			source.balloon_alert(attacker, "owner id set for [item]")
+			attached_circuit.owner_id = WEAKREF(item)
+			return COMPONENT_NO_AFTERATTACK
+
+		if(istype(item, /obj/item/circuit_component))
+			attached_circuit.add_component_manually(item, attacker)
+			return COMPONENT_NO_AFTERATTACK
 
 	if(!istype(item, /obj/item/integrated_circuit))
 		return
@@ -117,10 +143,11 @@
 		source.balloon_alert(attacker, "there is already a circuitboard inside!")
 		return
 
-	if(length(logic_board.attached_components) > capacity)
+	if(logic_board.current_size > capacity)
 		source.balloon_alert(attacker, "this is too large to fit into [parent]!")
 		return
 
+	logic_board.inserter_mind = WEAKREF(attacker.mind)
 	attach_circuit(logic_board, attacker)
 
 /datum/component/shell/proc/on_multitool_act(atom/source, mob/user, obj/item/tool)
@@ -225,3 +252,20 @@
 
 	usb_cable.attached_circuit = attached_circuit
 	return COMSIG_USB_CABLE_CONNECTED_TO_CIRCUIT
+
+/**
+ * Determines if a user is authorized to see the existance of this shell. Returns false if they are not
+ *
+ * Arguments:
+ * * user - The user to check if they are authorized
+ */
+/datum/component/shell/proc/is_authorized(mob/user)
+	if((shell_flags & SHELL_FLAG_CIRCUIT_UNREMOVABLE) && (shell_flags & SHELL_FLAG_CIRCUIT_UNMODIFIABLE))
+		return FALSE
+
+	if(attached_circuit?.admin_only)
+		if(check_rights_for(user.client, R_VAREDIT))
+			return TRUE
+		return FALSE
+
+	return TRUE
